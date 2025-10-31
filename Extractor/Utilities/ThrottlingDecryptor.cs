@@ -4,16 +4,14 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-
 using Jint;
 
 namespace Extractor.Utilities
 {
     public static class ThrottlingDecryptor
     {
-        private static bool s_isInitialized = false;
+        private static bool s_isInitialized;
         private static HttpClient s_client;
-        private static Esprima.JavaScriptParser s_javaScriptParser;
         private static Engine s_engine;
         private static Jint.Native.JsValue s_decryptFunction;
         private static Engine Engine
@@ -23,16 +21,6 @@ namespace Extractor.Utilities
                 if (s_engine == null)
                     s_engine = new Engine();
                 return s_engine;
-            }
-        }
-
-        private static Esprima.JavaScriptParser JavaScriptParser
-        {
-            get
-            {
-                if (s_javaScriptParser == null)
-                    s_javaScriptParser = new Esprima.JavaScriptParser();
-                return s_javaScriptParser;
             }
         }
 
@@ -58,7 +46,7 @@ namespace Extractor.Utilities
             s_isInitialized = true;
             s_client = client;
 
-            if (s_decryptFunction == null) s_decryptFunction = await GetDecrytFunction();
+            if (s_decryptFunction == null) s_decryptFunction = await GetDecryptFunction();
         }
 
         /// <summary>
@@ -117,14 +105,14 @@ namespace Extractor.Utilities
             }
         }
 
-        private static async Task<Jint.Native.JsValue> GetDecrytFunction()
+        private static async Task<Jint.Native.JsValue> GetDecryptFunction()
         {
             var baseJs = await GetBaseJsAsync();
             var decryptorFunctionStr = s_defaultDecryptorFunctionStr;
             var decryptFunctionName = Constants.DefaultThrottlingDecryptorFunctionName;
             if (baseJs != null)
             {
-                var groups = (IEnumerable<Group>)s_decryptFunctionNamePattern.Match(baseJs).Groups;
+                var groups = ((IEnumerable<Group>)s_decryptFunctionNamePattern.Match(baseJs).Groups).ToList();
                 var name = groups.ElementAtOrDefault(1)?.Value;
                 var indexPresent = int.TryParse(groups.ElementAtOrDefault(2)?.Value, out int index);
                 if (name != null)
@@ -140,9 +128,8 @@ namespace Extractor.Utilities
                     decryptorFunctionStr = functionBodyMatch.Groups[0].Value;
                 }
             }
-
-            var script = JavaScriptParser.ParseScript(decryptorFunctionStr);
-            Engine.Execute(script);
+            
+            Engine.Evaluate(decryptorFunctionStr);
             return Engine.GetValue(decryptFunctionName);
         }
 

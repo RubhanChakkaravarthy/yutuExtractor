@@ -60,10 +60,10 @@ namespace Extractor.PageExtractors
         {
             var response = await FetchDataAsync(name);
             var titlesAndParams = GetTitlesAndParams(response);
-            var selectedTabname = GetSelectedTabName(GetTabs(response));
+            var selectedTabName = GetSelectedTabName(GetTabs(response));
 
             var pageContents = new TrendingPageContents {
-                Name = selectedTabname,
+                Name = selectedTabName,
                 Titles = new List<string>()
             };
 
@@ -73,9 +73,10 @@ namespace Extractor.PageExtractors
                 pageContents.Titles.Add(title);
             }
 
-            var tab = GetTab(selectedTabname, response);
+            var tab = GetTab(selectedTabName, response);
             var itemsSections = tab.GetArray("tabRenderer.content.sectionListRenderer.contents")
-                .Select(c => ParsingHelpers.ParseItemSectionRenderer(c.GetObject("itemSectionRenderer")));
+                .Select(c => ParsingHelpers.ParseItemSectionRenderer(c.GetObject("itemSectionRenderer")))
+                .ToList();
 
             var mainItemsCollector = new StreamItemCollector();
             mainItemsCollector.Collect(itemsSections.Where(i => i.Item1 == null).SelectMany(i => i.Item2));
@@ -85,7 +86,7 @@ namespace Extractor.PageExtractors
 
             try
             {
-                var additionalSections = itemsSections.Where(i => i.Item1 != null);
+                var additionalSections = itemsSections.Where(i => i.Item1 != null).ToList();
                 if (additionalSections.Any())
                 {
                     pageContents.Sections = new List<ItemsSection<StreamItem>>();

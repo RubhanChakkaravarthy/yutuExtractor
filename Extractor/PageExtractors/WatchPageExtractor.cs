@@ -102,7 +102,7 @@ namespace Extractor.PageExtractors
 		/// <exception cref="HttpRequestException"></exception>
 		/// <exception cref="JsonException"></exception>
 		/// <exception cref="ParsingException"></exception>
-		public async Task<WatchPageContents> GetNextWatchContinutationContentsAsync(string continuationToken)
+		public async Task<WatchPageContents> GetNextWatchContinuationContentsAsync(string continuationToken)
 		{
 			var response = await FetchContinuationDataAsync(s_nextEndpoint, continuationToken);
 			var watchNextResults = response.GetArray("onResponseReceivedEndpoints").GetObject(0).GetArray("appendContinuationItemsAction.continuationItems");

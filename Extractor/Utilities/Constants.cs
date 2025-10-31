@@ -14,7 +14,7 @@
         internal static readonly string DefaultClientName = "1"; // WEB
 
         internal static readonly string ClientVersionHeaderKey = "x-youtube-client-version";
-        internal static readonly string DefaultClientVersion = "2.20230622.06.00";
+        internal static readonly string DefaultClientVersion = "2.20251030.01.00";
 
         internal static readonly string UserAgentHeaderKey = "user-agent";
         internal static readonly string DefaultUserAgent = " Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36";

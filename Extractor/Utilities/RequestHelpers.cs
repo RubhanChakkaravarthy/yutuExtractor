@@ -62,7 +62,7 @@ namespace Extractor.Utilities
 						["gl"] = culture.GetCountryCode(),
 						["clientName"] = "WEB",
 						["clientVersion"] = Constants.DefaultClientVersion,
-						["orignalUrl"] = Constants.YoutubeBaseUrl,
+						["originalUrl"] = Constants.YoutubeBaseUrl,
 						["platform"] = "DESKTOP",
 					},
 					["user"] = new JsonObject
