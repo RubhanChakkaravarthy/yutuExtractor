@@ -1,13 +1,12 @@
 using System;
-
-using Extractor.ItemExtractors;
+using Extractor.ItemExtractors.Interface;
 using Extractor.Models;
 
 namespace Extractor.ItemCollectors
 {
-	internal class StreamItemCollector : ItemCollector<StreamItem, StreamItemExtractor>
+	internal class StreamItemCollector : ItemCollector<StreamItem, IStreamItemExtractor>
 	{
-		protected override StreamItem Extract(StreamItemExtractor extractor)
+		protected override StreamItem Extract(IStreamItemExtractor extractor)
 		{
 			var item = new StreamItem {
 				Name = extractor.GetName(),

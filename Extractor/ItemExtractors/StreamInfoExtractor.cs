@@ -1,15 +1,16 @@
-using System.Linq;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Nodes;
-
+using Extractor.ItemExtractors.Interface;
 using Extractor.Models;
 using Extractor.Models.Enums;
 using Extractor.Models.Stream;
 using Extractor.Utilities;
-using System;
 
 namespace Extractor.ItemExtractors
 {
+	
     public class StreamInfoExtractor : IItemExtractor<StreamInfo>
     {
         private readonly JsonObject _playerResponse;
@@ -88,9 +89,13 @@ namespace Extractor.ItemExtractors
                 ChannelId = ParsingHelpers.GetBrowseId(channelObj.GetObject("navigationEndpoint")),
                 Url = ParsingHelpers.GetUrl(channelObj.GetObject("navigationEndpoint")),
                 Thumbnails = ParsingHelpers.ParseThumbnails(channelObj.GetArray("thumbnail.thumbnails")),
-                IsVerified =  channelObj.TryGetArray("badges", out var badges) && ParsingHelpers.IsChannelVerified(badges),
                 SubscribersCount = ParsingHelpers.GetText(channelObj.GetObject("subscriberCountText"))
             };
+
+            if (channelObj.TryGetArray("badges", out var badges))
+            {
+	            channel.BadgeType = ParsingHelpers.ParseChannelBadgeType(badges);
+            }
 
             return channel;
         }

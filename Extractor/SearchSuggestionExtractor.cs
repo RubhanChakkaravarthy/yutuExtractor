@@ -1,12 +1,12 @@
 using System.Globalization;
-using System.Net.Http;
 using System.Linq;
-using Extractor.Utilities;
-using Extractor.Exceptions;
+using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
+using Extractor.Exceptions;
+using Extractor.Utilities;
 
 namespace Extractor
 {
@@ -29,7 +29,7 @@ namespace Extractor
         private async Task<JsonArray> FetchDataAsync(string searchText)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Get, RequestHelpers.GetSearchCompletionUri(searchText, _culture))) {
-                request.AddYoutubeV1Headers();
+                request.AddYoutubeV1Headers(null);
                 
                 using (var response = await _client.SendAsync(request)) {            
                     response.EnsureSuccessStatusCode();

@@ -6,7 +6,6 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-
 using Extractor.Exceptions;
 using Extractor.ItemCollectors;
 using Extractor.ItemExtractors;
@@ -23,26 +22,6 @@ namespace Extractor.PageExtractors
         public SearchPageExtractor(HttpClient client, CultureInfo culture) : base(client, culture) { }
 
         /// <summary>
-		/// Fetch Initial Page Data
-		/// </summary>
-		/// <exception cref="HttpRequestException"></exception>
-		/// <exception cref="JsonException"></exception>
-		private async Task<JsonObject> FetchDataAsync(string searchText)
-        {
-            using (var request = new HttpRequestMessage(HttpMethod.Post, RequestHelpers.GetYoutubeV1Uri(s_endpoint, ApiKey)))
-            {
-                request.AddYoutubeV1Headers()
-                    .AddYoutubeV1EndpointBody(Culture, new Dictionary<string, JsonNode> { { "query", searchText } });
-
-                using (var response = await Client.SendAsync(request))
-                {
-                    response.EnsureSuccessStatusCode();
-                    return await response.Content.DeserializeAsync<JsonObject>();
-                }
-            }
-        }
-
-        /// <summary>
         /// Get Search Page Contents
         /// </summary>
         /// <param name="searchText">search text</param>
@@ -54,7 +33,7 @@ namespace Extractor.PageExtractors
         /// <exception cref="ParsingException"></exception>
         public async Task<SearchPageContents> GetContentsAsync(string searchText)
         {
-            var response = await FetchDataAsync(searchText);
+            var response = await FetchContentsAsync(s_endpoint, new Dictionary<string, JsonNode> { { "query", searchText } });
             var searchContents = GetSearchContents(response);
             return GetPageContents(GetSearchQuery(response), searchContents);
         }
@@ -92,7 +71,7 @@ namespace Extractor.PageExtractors
             foreach (var content in contents)
             {
                 if (content.Has("videoRenderer"))
-                    streamCollector.Collect(new StreamItemExtractor(content.GetObject("videoRenderer")));
+                    streamCollector.Collect(new StreamItemRendererExtractor(content.GetObject("videoRenderer")));
                 else if (content.Has("playlistRenderer"))
                     playlistCollector.Collect(new PlaylistItemExtractor(content.GetObject("playlistRenderer")));
                 else if (content.Has("channelRenderer"))

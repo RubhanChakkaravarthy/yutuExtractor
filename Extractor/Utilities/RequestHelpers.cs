@@ -1,22 +1,21 @@
-﻿using System.Net.Http;
-using System.Collections.Specialized;
+﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Globalization;
+using System.Net.Http;
 using System.Text.Json.Nodes;
-using System;
 using System.Web;
 
 namespace Extractor.Utilities
 {
 	internal static class RequestHelpers
 	{
-		internal static Uri GetYoutubeV1Uri(string endpoint, string apiKey)
+		internal static Uri GetYoutubeV1Uri(string endpoint)
 		{
 			var uriBuilder = new UriBuilder($"{Constants.YoutubeV1Url}/{endpoint}");
 			var queryBuilder = HttpUtility.ParseQueryString(uriBuilder.Query);
 			queryBuilder.AddQueryStrings(new Dictionary<string, string>
 			{
-				{ Constants.ApiKeyQueryKey, apiKey },
 				{ Constants.PrettyPrintQueryKey, Constants.DefaultPrettyPrintValue }
 			});
 			uriBuilder.Query = queryBuilder.ToString();
@@ -42,12 +41,18 @@ namespace Extractor.Utilities
 			return uriBuilder.Uri;
 		}
 
-		internal static HttpRequestMessage AddYoutubeV1Headers(this HttpRequestMessage request)
+		internal static HttpRequestMessage AddYoutubeV1Headers(this HttpRequestMessage request, string visitorId)
 		{
 			request.Headers.Add(Constants.ClientNameHeaderKey, Constants.DefaultClientName);
 			request.Headers.Add(Constants.ClientVersionHeaderKey, Constants.DefaultClientVersion);
 			request.Headers.Add(Constants.OriginHeaderKey, Constants.DefaultOrigin);
 			request.Headers.Add(Constants.RefererHeaderKey, Constants.DefaultReferer);
+
+			if (visitorId != null)
+			{
+				request.Headers.Add(Constants.XGoogVisitorIdHeaderKey, visitorId);
+			}
+			
 			return request;
 		}
 

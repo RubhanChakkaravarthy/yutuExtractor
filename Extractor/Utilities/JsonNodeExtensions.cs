@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Text.Json.Nodes;
 
 using Extractor.Exceptions;
@@ -34,7 +33,7 @@ namespace Extractor.Utilities
             if (node == null) throw new ArgumentNullException(nameof(node));
             if (properties == null) throw new ArgumentNullException(nameof(properties));
 
-            result = default;
+            result = null;
             try
             {
                 foreach (var property in properties)
@@ -133,7 +132,7 @@ namespace Extractor.Utilities
             if (node == null) throw new ArgumentNullException(nameof(node));
             if (path == null) throw new ArgumentNullException(nameof(path));
 
-            result = default;
+            result = null;
             try
             {
                 result = node.GotoPath(path).AsObject();
@@ -158,12 +157,28 @@ namespace Extractor.Utilities
                 throw new ParsingException($"Wrong data type at index {index}");
             }
         }
+        
+        internal static bool TryGetObject(this JsonArray node, int index, out JsonObject result)
+        {
+	        if (node == null) throw new ArgumentNullException(nameof(node));
+	        
+	        result = null;
+	        try
+	        {
+		        result = node[index].AsObject();
+		        return true;
+	        }
+	        catch (Exception)
+	        {
+		        return false;
+	        }
+        }
 
         internal static bool Has(this JsonNode node, string path)
         {
             if (node == null) throw new ArgumentNullException(nameof(node));
             if (path == null) throw new ArgumentNullException(nameof(path));
-
+            
             return node.GotoPath(path.Split('.').AsSpan(), out _) != null;
         }
 
@@ -187,7 +202,7 @@ namespace Extractor.Utilities
             if (node == null) throw new ArgumentNullException(nameof(node));
             if (path == null) throw new ArgumentNullException(nameof(path));
 
-            result = default;
+            result = null;
             try
             {
                 result = node.GotoPath(path).AsArray();

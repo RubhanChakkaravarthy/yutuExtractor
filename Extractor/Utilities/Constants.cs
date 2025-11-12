@@ -27,6 +27,8 @@
 
         internal static readonly string RefererHeaderKey = "Referer";
         internal static readonly string DefaultReferer = "https://www.youtube.com/";
+        
+        internal static readonly string XGoogVisitorIdHeaderKey = "X-Goog-Visitor-Id";
 
         internal static readonly string DefaultBaseJsUrl = "https://www.youtube.com/s/player/3cd2d050/player_ias.vflset/en_GB/base.js";
         internal static readonly string DefaultThrottlingDecryptorFunctionName = "Qla";

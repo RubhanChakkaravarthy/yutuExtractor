@@ -36,7 +36,7 @@ namespace Extractor.ItemCollectors
 
 			try
 			{
-				item.IsVerified = extractor.IsVerified();
+				item.BadgeType = extractor.GetBadgeType();
 			}
 			catch (Exception ex)
 			{

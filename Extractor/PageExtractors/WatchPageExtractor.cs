@@ -21,27 +21,7 @@ namespace Extractor.PageExtractors
 
 		public WatchPageExtractor(HttpClient client) : base(client) { }
 		public WatchPageExtractor(HttpClient client, CultureInfo culture) : base(client, culture) { }
-
-		/// <summary>
-		/// Fetch Data
-		/// </summary>
-		/// <exception cref="HttpRequestException"></exception>
-		/// <exception cref="JsonException"></exception>
-		private async Task<JsonObject> FetchDataAsync(string endpoint, string videoId)
-		{
-			using (var requestMessage = new HttpRequestMessage(HttpMethod.Post, RequestHelpers.GetYoutubeV1Uri(endpoint, ApiKey)))
-			{
-				requestMessage.AddYoutubeV1Headers()
-					.AddYoutubeV1EndpointBody(Culture, new Dictionary<string, JsonNode> { { "videoId", videoId } });
-
-				using (var response = await Client.SendAsync(requestMessage))
-				{
-					response.EnsureSuccessStatusCode();
-					return await response.Content.DeserializeAsync<JsonObject>();
-				}
-			}
-		}
-
+		
 		/// <summary>
 		/// Get Watch Page Contents
 		/// </summary>
@@ -52,8 +32,10 @@ namespace Extractor.PageExtractors
 		/// <exception cref="ParsingException"></exception>
 		public async Task<WatchPageContents> GetContentsAsync(string videoId)
 		{
-			var playerResponse = await FetchDataAsync(s_playerEndpoint, videoId);
-			var nextResponse = await FetchDataAsync(s_nextEndpoint, videoId);
+			var additionalFields = new Dictionary<string, JsonNode> { { "videoId", videoId } };
+			
+			var playerResponse = await FetchContentsAsync(s_playerEndpoint, additionalFields);
+			var nextResponse = await FetchContentsAsync(s_nextEndpoint, additionalFields);
 
 			var streamInfoExtractor = new StreamInfoExtractor(playerResponse, nextResponse);
 			var streamInfoCollector = new StreamInfoCollector();
@@ -81,9 +63,9 @@ namespace Extractor.PageExtractors
 				streamItemCollector.Collect(
 					GetSecondaryResults(nextResponse)
 					.Where(r => r.Has("compactVideoRenderer"))
-					.Select(r => new StreamItemExtractor(r.GetObject("compactVideoRenderer")))
+					.Select(r => new StreamItemRendererExtractor(r.GetObject("compactVideoRenderer")))
 				);
-				watchPageContents.NextWatchItems = streamItemCollector.Items;
+				watchPageContents.WatchNextItems = streamItemCollector.Items;
 				watchPageContents.Exceptions.AddRange(streamItemCollector.Exceptions);
 			}
 			catch (Exception e)
@@ -110,11 +92,11 @@ namespace Extractor.PageExtractors
 			streamItemCollector.Collect(
 				watchNextResults
 				.Where(r => r.Has("compactVideoRenderer"))
-				.Select(r => new StreamItemExtractor(r.GetObject("compactVideoRenderer")))
+				.Select(r => new StreamItemRendererExtractor(r.GetObject("compactVideoRenderer")))
 			);
 			return new WatchPageContents
 			{
-				NextWatchItems = streamItemCollector.Items,
+				WatchNextItems = streamItemCollector.Items,
 				Exceptions = streamItemCollector.Exceptions,
 				WatchNextContinuationToken = GetNextWatchContinuationToken(watchNextResults)
 			};

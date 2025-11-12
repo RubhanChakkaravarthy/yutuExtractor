@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using Extractor.ItemExtractors.Interface;
 using Extractor.Models;
-using Extractor.ItemExtractors;
 
 namespace Extractor.ItemCollectors
 {

@@ -1,18 +1,16 @@
 ﻿using System;
-using System.Threading.Tasks;
-using System.Net.Http;
-using System.Text.Json.Nodes;
-using System.Globalization;
-using System.Text.Json;
-using System.Linq;
 using System.Collections.Generic;
-
-using Extractor.ItemExtractors;
-using Extractor.ItemCollectors;
-using Extractor.Utilities;
-using Extractor.Models;
+using System.Globalization;
+using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 using Extractor.Exceptions;
-using System.IO;
+using Extractor.ItemCollectors;
+using Extractor.ItemExtractors;
+using Extractor.Models;
+using Extractor.Utilities;
 
 namespace Extractor.PageExtractors
 {
@@ -24,26 +22,7 @@ namespace Extractor.PageExtractors
 		public HomePageExtractor(HttpClient client, CultureInfo culture) : base(client, culture) { }
 		public HomePageExtractor(HttpClient client) : base(client) { }
 
-		/// <summary>
-		/// Fetch Initial Page Data
-		/// </summary>
-		/// <exception cref="HttpRequestException"></exception>
-		/// <exception cref="JsonException"></exception>
-		private async Task<JsonObject> FetchDataAsync()
-		{
-			using (var request = new HttpRequestMessage(HttpMethod.Post, RequestHelpers.GetYoutubeV1Uri(s_endpoint, ApiKey)))
-			{
-				request.AddYoutubeV1Headers()
-					.AddYoutubeV1EndpointBody(Culture, new Dictionary<string, JsonNode> { { "browseId", s_browseId } });
-
-				using (var response = await Client.SendAsync(request))
-				{
-					response.EnsureSuccessStatusCode();
-					return await response.Content.DeserializeAsync<JsonObject>();
-				}
-			}
-		}
-
+		
 		/// <summary>
 		/// Get Home Page Contents
 		/// </summary>
@@ -53,7 +32,7 @@ namespace Extractor.PageExtractors
 		/// <exception cref="ParsingException"></exception>
 		public async Task<HomePageContents> GetContentsAsync()
 		{
-			var response = await FetchDataAsync();
+			var response = await FetchContentsAsync(s_endpoint, new Dictionary<string, JsonNode> { { "browseId", s_browseId } });
 			var contents = GetTabContents(GetTab(response));
 			return GetPageContents(contents);
 		}
@@ -77,8 +56,8 @@ namespace Extractor.PageExtractors
 		{
 			var mainItemsCollector = new StreamItemCollector();
 			mainItemsCollector.Collect(contents
-				.Where(c => c.Has("richItemRenderer"))
-				.Select(c => new StreamItemExtractor(c.GetObject("richItemRenderer.content.videoRenderer"))));
+				.Where(c => c.Has("richItemRenderer.content.lockupViewModel"))
+				.Select(c => new StreamItemLockupViewModelExtractor(c.GetObject("richItemRenderer.content.lockupViewModel"))));
 
 			var pageContents = new HomePageContents {
 				Items = mainItemsCollector.Items,
@@ -89,22 +68,22 @@ namespace Extractor.PageExtractors
 				LastOrDefault(c => c.Has("continuationItemRenderer"));
 			if (continuation != null)
 				pageContents.ContinuationToken = ParsingHelpers.ParseContinuationItemRenderer(continuation.GetObject("continuationItemRenderer"));
-
-
+			
 			try
 			{
 				var sections = contents
 					.Where(c => c.Has("richSectionRenderer"))
 					.Select(c => ParsingHelpers.ParseRichSectionRenderer(c.GetObject("richSectionRenderer")))
-					.Where(c => c != default);
+					.Where(c => c != default)
+					.ToArray();
 
 				if (sections.Any())
 				{
 					pageContents.Sections = new List<ItemsSection<StreamItem>>();
-					foreach (var (title, items) in sections)
+					foreach (var (title, streamItemExtractors) in sections)
 					{
 						var collector = new StreamItemCollector();
-						collector.Collect(items);
+						collector.Collect(streamItemExtractors);
 						pageContents.Sections.Add(new ItemsSection<StreamItem> {
 							Name = title,
 							Items = collector.Items,

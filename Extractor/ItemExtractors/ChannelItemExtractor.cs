@@ -1,5 +1,5 @@
 using System.Text.Json.Nodes;
-
+using Extractor.ItemExtractors.Interface;
 using Extractor.Models;
 using Extractor.Models.Enums;
 using Extractor.Utilities;
@@ -44,9 +44,9 @@ namespace Extractor.ItemExtractors
             return channelId;
         }
 
-        public bool IsVerified()
+        public ChannelBadgeType GetBadgeType()
         {
-            return _channelItemObject.Has("ownerBadges") && ParsingHelpers.IsChannelVerified(_channelItemObject.GetArray("ownerBadges"));
+	        return _channelItemObject.TryGetArray("ownerBadges", out var badges) ? ParsingHelpers.ParseChannelBadgeType(badges) : ChannelBadgeType.None;
         }
 
         public string GetSubscribersCount()

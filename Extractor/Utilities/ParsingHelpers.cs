@@ -1,8 +1,11 @@
-﻿using System.Linq;
-using Extractor.Models;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Nodes;
-using Extractor.ItemExtractors;
 using Extractor.Exceptions;
+using Extractor.ItemExtractors;
+using Extractor.ItemExtractors.Interface;
+using Extractor.Models;
+using Extractor.Models.Enums;
 
 namespace Extractor.Utilities
 {
@@ -29,21 +32,33 @@ namespace Extractor.Utilities
 		/// Extracts Stream Item from richSectionRenderer
 		/// </summary>
 		/// <param name="richSectionRenderer">Rich Section Renderer Object</param>
-		/// <returns>(title, StreamInfoExtractor[])</returns>
+		/// <returns>List of IStreamItemExtractor with the title of the section</returns>
 		/// <exception cref="ParsingException"></exception>
-		internal static (string, StreamItemExtractor[]) ParseRichSectionRenderer(JsonObject richSectionRenderer)
+		internal static (string title, List<IStreamItemExtractor> streamItemExtractors) ParseRichSectionRenderer(JsonObject richSectionRenderer)
 		{
-			if (richSectionRenderer.TryGetObject("content.richShelfRenderer", out var shelf))
+			if (!richSectionRenderer.TryGetObject("content.richShelfRenderer", out var shelf)) return default;
+			
+			var title = GetText(shelf.GetObject("title"));
+			var contents = shelf.GetArray("contents");
+			var items = new List<IStreamItemExtractor>();
+			foreach (var contentItem in contents)
 			{
-				var title = GetText(shelf.GetObject("title"));
-				var contents = shelf.GetArray("contents")
-					.Select(c => new StreamItemExtractor(c.GetObject("richItemRenderer.content").GetOneOf<JsonObject>(new string[] { "videoRenderer", "reelItemRenderer" })))
-					.ToArray();
-
-				return (title, contents);
+				var content = contentItem.GetObject("richItemRenderer.content");
+				if (content
+				    .TryGetOneOf(new string[] { "videoRenderer", "reelItemRenderer" }, out JsonObject render))
+				{
+					items.Add(new  StreamItemRendererExtractor(render));
+				} else if (content.TryGetObject("shortsLockupViewModel", out var shortsLockupViewModel))
+				{
+					items.Add(new StreamItemShortsLockupViewModelExtractor(shortsLockupViewModel));
+				} else if (content.TryGetObject("lockupViewModel", out var lockupViewModel))
+				{
+					items.Add(new StreamItemLockupViewModelExtractor(lockupViewModel));
+				}
 			}
+				
+			return (title, items);
 
-			return default;
 		}
 
 		/// <summary>
@@ -52,7 +67,7 @@ namespace Extractor.Utilities
 		/// <param name="itemSectionRenderer">Item Section Renderer Object</param>
 		/// <returns>(title, StreamInfoExtractor[])</returns>
 		/// <exception cref="ParsingException"></exception>
-		internal static (string, StreamItemExtractor[]) ParseItemSectionRenderer(JsonObject itemSectionRenderer)
+		internal static (string, StreamItemRendererExtractor[]) ParseItemSectionRenderer(JsonObject itemSectionRenderer)
 		{
 			if (itemSectionRenderer.ContainsKey("contents"))
 			{
@@ -70,21 +85,21 @@ namespace Extractor.Utilities
 		/// <param name="shelfRenderer">Shelf Renderer Object</param>
 		/// <returns>(title, StreamInfoExtractor[])</returns>
 		/// <exception cref="ParsingException"></exception>
-		internal static (string, StreamItemExtractor[]) ParseShelfRenderer(JsonObject shelfRenderer)
+		internal static (string, StreamItemRendererExtractor[]) ParseShelfRenderer(JsonObject shelfRenderer)
 		{
-			StreamItemExtractor[] contents;
+			StreamItemRendererExtractor[] contents;
 			if (shelfRenderer.Has("content"))
 			{
 				contents = shelfRenderer.GetObject("content")
 					.GetOneOf<JsonObject>(new string[] { "horizontalListRenderer", "expandedShelfContentsRenderer" })
 					.GetArray("items")
-					.Select(i => new StreamItemExtractor(i.GetOneOf<JsonObject>(new string[] { "gridVideoRenderer", "videoRenderer" })))
+					.Select(i => new StreamItemRendererExtractor(i.GetOneOf<JsonObject>(new string[] { "gridVideoRenderer", "videoRenderer" })))
 					.ToArray();
 			}
 			else
 			{
 				contents = shelfRenderer.GetArray("items")
-					.Select(i => new StreamItemExtractor(i.GetObject("reelItemRenderer")))
+					.Select(i => new StreamItemRendererExtractor(i.GetObject("reelItemRenderer")))
 					.ToArray();
 			}
 			string title = null;
@@ -113,9 +128,27 @@ namespace Extractor.Utilities
 			return text;
 		}
 
-		internal static bool IsChannelVerified(JsonArray badges)
+		internal static ChannelBadgeType ParseChannelBadgeType(JsonArray badges)
 		{
-			return badges.FirstOrDefault(b => b.TryGet<string>("metadataBadgeRenderer.style", out var badgeStyle) && badgeStyle == "BADGE_STYLE_TYPE_VERIFIED") != null;
+			var badge = badges.FirstOrDefault(b => b.TryGet<string>("metadataBadgeRenderer.style", out var _));
+			if (badge == null || !badge.TryGet<string>("metadataBadgeRenderer.style", out var badgeStyle))
+				return ChannelBadgeType.None;
+			
+			return GetChannelBadgeType(badgeStyle);
+		}
+
+		internal static ChannelBadgeType GetChannelBadgeType(string badgeStyle)
+		{
+			switch (badgeStyle)
+			{
+				case "BADGE_STYLE_TYPE_VERIFIED":
+				case "CHECK_CIRCLE_FILLED":
+					return ChannelBadgeType.Verified;
+				case "AUDIO_BADGE":
+					return ChannelBadgeType.Audio;
+				default:
+					return ChannelBadgeType.None;
+			}
 		}
 
 		internal static string GetUrl(JsonObject navigationEndpoint)

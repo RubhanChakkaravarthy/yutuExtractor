@@ -10,6 +10,6 @@ namespace Extractor.Models
 
         public List<System.Exception> Exceptions { get; set; }
 
-        public string ContinuationParam { get; set; }
+        public string ContinuationToken { get; set; }
     }
 }

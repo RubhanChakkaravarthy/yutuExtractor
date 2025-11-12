@@ -6,7 +6,6 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-
 using Extractor.Exceptions;
 using Extractor.ItemCollectors;
 using Extractor.Models;
@@ -35,17 +34,8 @@ namespace Extractor.PageExtractors
                 param = string.Empty;
             }
 
-            using (var requestMessage = new HttpRequestMessage(HttpMethod.Post, RequestHelpers.GetYoutubeV1Uri(s_endpoint, ApiKey)))
-            {
-                requestMessage.AddYoutubeV1Headers()
-                    .AddYoutubeV1EndpointBody(Culture, new Dictionary<string, JsonNode> { { "browseId", s_browseId }, { "params", param } });
-
-                using (var response = await Client.SendAsync(requestMessage))
-                {
-                    response.EnsureSuccessStatusCode();
-                    return await response.Content.DeserializeAsync<JsonObject>();
-                }
-            }
+            return await FetchContentsAsync(s_endpoint,
+	            new Dictionary<string, JsonNode> { { "browseId", s_browseId }, { "params", param } });
         }
 
         /// <summary>
